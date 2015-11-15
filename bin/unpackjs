@@ -39,6 +39,23 @@ function addExt(filename) {
     return filename;
 }
 
+function generateDepsFromRows(rows) {
+    var depsToName = [];
+    rows.forEach(function(row) {
+        Object.keys(row.deps || {}).forEach(function(name) {
+            var id = row.deps[name];
+            var oldName = depsToName[id];
+            if (oldName && oldName !== name) {
+                console.warn('Duplicate ID for ' + id + '. Found: "' +
+                        name + '", duplicate of: "' + oldName + '"');
+                return;
+            }
+            depsToName[id] = name;
+        });
+    });
+    return depsToName;
+}
+
 var outroot = process.cwd();
 
 files.forEach(function(filepath) {
@@ -61,19 +78,8 @@ files.forEach(function(filepath) {
             throw err;
         }
         var rows = browserUnpack(data);
-        var depsToName = [];
-        rows.forEach(function(row) {
-            Object.keys(row.deps || {}).forEach(function(name) {
-                var id = row.deps[name];
-                var oldName = depsToName[id];
-                if (oldName && oldName !== name) {
-                    console.warn('Duplicate ID for ' + id + '. Found: "' +
-                            name + '", duplicate of: "' + oldName + '"');
-                    return;
-                }
-                depsToName[id] = name;
-            });
-        });
+        var depsToName = generateDepsFromRows(rows);
+
         var seen = {};
         rows.forEach(function(row) {
             var id = row.id;
