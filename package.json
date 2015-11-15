@@ -1,12 +1,20 @@
 {
   "name": "unpackjs",
   "version": "0.0.1",
-  "description": "Reverse browserify",
+  "description": "Reverse browserify: unpackjs is a tool to split a single file in multiple files",
   "bin": "bin/unpackjs",
   "author": "Rob Wu <rob@robwu.nl> (https://robwu.nl/)",
   "license": "MIT",
   "dependencies": {
     "browser-unpack": "^1.1.1",
     "mkdirp": "^0.5.1"
+  },
+  "keywords": [
+    "browserify",
+    "unpack"
+  ],
+  "repository" :{
+    "type" : "git",
+    "url" : "https://github.com/Rob--W/unpackjs.git"
   }
 }
