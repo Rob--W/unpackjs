@@ -63,7 +63,7 @@ function generateDepsFromRows(rows) {
             if (!row.entry) {
                 console.warn('Processing non-entry without name: ' + row.id);
             }
-            depsToName[row.id] = normalizePath(row.id);
+            depsToName[row.id] = 'entry' + normalizePath(row.id);
         }
         var basedir = path.dirname(depsToName[row.id]);
         
