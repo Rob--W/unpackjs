@@ -1,0 +1,12 @@
+{
+  "name": "unpackjs",
+  "version": "0.0.1",
+  "description": "Reverse browserify",
+  "bin": "bin/unpackjs",
+  "author": "Rob Wu <rob@robwu.nl> (https://robwu.nl/)",
+  "license": "MIT",
+  "dependencies": {
+    "browser-unpack": "^1.1.1",
+    "mkdirp": "^0.5.1"
+  }
+}

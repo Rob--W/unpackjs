@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+'use strict';
+
+// Purpose: Make it easier to audit browserified files.
+
+var fs = require('fs');
+var path = require('path');
+var browserUnpack = require('browser-unpack');
+var mkdirp = require('mkdirp');
+
+var exe = process.argv.slice(0, 2).join(' ');
+var files = [];
+process.argv.slice(2).forEach(function(filepath) {
+    if (filepath === '--help' || filepath === '-h') {
+        console.error('Usage: ' + exe + ' [js file...]');
+        console.error('Creates ');
+        process.exit(0);
+    }
+    fs.accessSync(filepath); // Throws if file cannot be accessed.
+    files.push(filepath);
+});
+
+if (!files.length) {
+    console.error('No files to process. Usage: ' + exe + ' [filename...]');
+    process.exit(1);
+}
+
+function normalizePath(filepath) {
+    // Could be a number.
+    filepath = String(filepath);
+    // No path traversal and other jokes please.
+    return path.resolve('/', filepath).slice(1);
+}
+
+function addExt(filename) {
+    if (!/\.js$/i.test(filename)) {
+        filename += '.js';
+    }
+    return filename;
+}
+
+var outroot = process.cwd();
+
+files.forEach(function(filepath) {
+    // Create directory to hold all files.
+    var outdir = normalizePath(filepath).replace(/\//g, '-');
+    outdir = path.join(outroot, outdir);
+    try {
+        fs.mkdirSync(outdir);
+        console.log('Created ' + outdir + '/');
+    } catch (e) {
+        console.error('mkdir failed (' + e.code + '), continuing anyway: ' +
+                outdir);
+    }
+    // Now fill the directory with modules.
+    fs.readFile(filepath, {
+        encoding: 'utf-8'
+    }, function(err, data) {
+        if (err) {
+            console.error('Error while processing: ' + filepath);
+            throw err;
+        }
+        var rows = browserUnpack(data);
+        var depsToName = [];
+        rows.forEach(function(row) {
+            Object.keys(row.deps || {}).forEach(function(name) {
+                var id = row.deps[name];
+                if (depsToName[id] && depsToName[id] !== name) {
+                    console.warn('Duplicate ID for ' + id + '. Found: "' +
+                                name + '", duplicate of: "' + depsToName[id] +
+                                '"');
+                    return;
+                }
+                depsToName[id] = name;
+            });
+        });
+        var seen = {};
+        rows.forEach(function(row) {
+            var id = row.id;
+            id = depsToName[id] || id;
+            var filename = normalizePath(id);
+
+            while (seen[addExt(filename)]) {
+                console.log('Warning: Duplicate definition for ' + id);
+                filename += ',';
+            }
+            seen[filename] = true;
+
+            filename = addExt(filename);
+            var subdir = path.dirname(filename);
+            if (subdir.lastIndexOf('../', 0) === 0) {
+                throw new Error('Unexpected ../ in ' + filename +
+                        ' while processing ' + id);
+            }
+            if (subdir !== '.') {
+                mkdirp.sync(path.join(outdir, subdir));
+            }
+
+            var outfile = path.join(outdir, filename);
+            var outsource = row.source;
+            // Will overwrite existing files.
+            fs.writeFile(outfile, outsource, function(err) {
+                if (err) {
+                    console.error('Error while processing ' + filepath +
+                            ', module ' + row.id);
+                    throw err;
+                }
+            });
+        });
+    });
+});
