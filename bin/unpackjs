@@ -65,10 +65,10 @@ files.forEach(function(filepath) {
         rows.forEach(function(row) {
             Object.keys(row.deps || {}).forEach(function(name) {
                 var id = row.deps[name];
-                if (depsToName[id] && depsToName[id] !== name) {
+                var oldName = depsToName[id];
+                if (oldName && oldName !== name) {
                     console.warn('Duplicate ID for ' + id + '. Found: "' +
-                                name + '", duplicate of: "' + depsToName[id] +
-                                '"');
+                            name + '", duplicate of: "' + oldName + '"');
                     return;
                 }
                 depsToName[id] = name;
