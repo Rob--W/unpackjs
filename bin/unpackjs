@@ -29,10 +29,11 @@ function normalizePath(filepath) {
     // Could be a number.
     filepath = String(filepath);
     // No path traversal and other jokes please.
-    return path.resolve('/', filepath).slice(1);
+    return path.resolve('/', filepath).slice(1).replace(/\.js$/i, '');
 }
 
 function addExt(filename) {
+    // TODO: Allow other file names such as JSON/CSS?
     if (!/\.js$/i.test(filename)) {
         filename += '.js';
     }
@@ -40,17 +41,63 @@ function addExt(filename) {
 }
 
 function generateDepsFromRows(rows) {
-    var depsToName = [];
+    var depsToName = {};
+
+    var idToRow = {};
+    rows.filter(function(row) {
+        if (!idToRow[row.id]) {
+            idToRow[row.id] = row;
+        } else {
+            // Should not happen, but proceed gracefully.
+            console.warn('Warning: Duplicate ID ' + row.id);
+            console.log('Current deps :', row.deps);
+            console.log('Existing deps:', idToRow[row.id].deps);
+        }
+        return row.entry;
+    }).forEach(function(row) {
+        processRow(row);
+    });
+    function processRow(row) {
+        if (!depsToName[row.id]) {
+            // This ought only happen for entry points...
+            if (!row.entry) {
+                console.warn('Processing non-entry without name: ' + row.id);
+            }
+            depsToName[row.id] = normalizePath(row.id);
+        }
+        var basedir = path.dirname(depsToName[row.id]);
+        
+        Object.keys(row.deps || {}).forEach(function(name) {
+            var depid = row.deps[name];
+            if (depsToName[depid]) {
+                // Already seen. Circular reference?
+                return;
+            }
+            depsToName[depid] = normalizePath(path.join(basedir, name));
+            // idToRow[row.id] always exists by construction.
+            processRow(idToRow[depid]);
+        });
+    }
     rows.forEach(function(row) {
         Object.keys(row.deps || {}).forEach(function(name) {
             var id = row.deps[name];
             var oldName = depsToName[id];
-            if (oldName && oldName !== name) {
-                console.warn('Duplicate ID for ' + id + '. Found: "' +
-                        name + '", duplicate of: "' + oldName + '"');
-                return;
+            if (!oldName) {
+                console.log('Module not referenced by entry point: ' + id +
+                        ' (using name: ' + name + ')');
+                depsToName[id] = name;
+            } else if (oldName === name) {
+                // Great!
+            } else {
+                var oldNameN = normalizePath(oldName);
+                var nameN = normalizePath(name);
+                if (oldNameN.indexOf(nameN) == -1) {
+                    // Duplicate name, and the new name is not part of the old
+                    // name...
+                    console.warn('Duplicate ID for ' + id + '. Found: "' +
+                            name + '", duplicate of: "' + oldName + '"');
+                }
             }
-            depsToName[id] = name;
         });
     });
     return depsToName;
