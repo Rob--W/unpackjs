@@ -73,7 +73,13 @@ function generateDepsFromRows(rows) {
                 // Already seen. Circular reference?
                 return;
             }
-            depsToName[depid] = normalizePath(path.join(basedir, name));
+            if (name.charAt(0) == '.') {
+                // Relative
+                depsToName[depid] = normalizePath(path.join(basedir, name));
+            } else {
+                // Absolute
+                depsToName[depid] = name;
+            }
             // idToRow[row.id] always exists by construction.
             processRow(idToRow[depid]);
         });
