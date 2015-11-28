@@ -80,6 +80,11 @@ function generateDepsFromRows(rows) {
                 // Absolute
                 depsToName[depid] = name;
             }
+            if (!idToRow[depid]) {
+                console.warn('Unknown dependency for name ' + name + ': ' +
+                        depid);
+                return;
+            }
             // idToRow[row.id] always exists by construction.
             processRow(idToRow[depid]);
         });
